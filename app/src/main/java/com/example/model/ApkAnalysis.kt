@@ -238,6 +238,18 @@ data class DownloadApkItem(
     val sizeBytes: Long
 )
 
+data class InstalledAppItem(
+    val appName: String,
+    val packageName: String,
+    val versionName: String,
+    val versionCode: Long,
+    val baseApkPath: String,
+    val splitApkPaths: List<String>,
+    val apkSizeBytes: Long,
+    val isSystemApp: Boolean,
+    val canReadBaseApk: Boolean
+)
+
 data class ExportConfig(
     val projectName: String,
     val includeDex: Boolean = true,

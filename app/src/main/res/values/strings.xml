@@ -2,6 +2,7 @@
     <string name="app_name">Palometa</string>
     <string name="app_tagline">Mobile APK Smali Decompiler, String Scanner &amp; Ghidra Prep</string>
     <string name="action_open_apk">Browse Downloads &amp; APKs</string>
+    <string name="action_browse_installed">Browse Installed Apps</string>
     <string name="action_inspect_self">Inspect Built-in Demo APK (Self)</string>
     <string name="action_switch_apk">Load Another APK</string>
     <string name="action_save_bundle">Save Bundle (.zip)</string>
@@ -14,7 +15,7 @@
     <string name="nav_inspect">Strings &amp; Hex</string>
     <string name="nav_export">Export</string>
     <string name="empty_title">Palometa APK Studio</string>
-    <string name="empty_subtitle">Nibble apart any Android .apk file: read decompiled Smali code, scan printable strings for hardcoded keys or URLs, inspect native libraries, and package a Ghidra-ready desktop bundle.</string>
+    <string name="empty_subtitle">Nibble apart installed apps or any .apk file: read decompiled Smali code, scan printable strings for hardcoded keys or URLs, inspect native libraries, and package a Ghidra-ready desktop bundle.</string>
     <string name="parsing_in_progress">Reading APK &amp; scanning strings…</string>
     <string name="exporting_in_progress">Building Ghidra workstation bundle…</string>
     <string name="error_parse_generic">Could not parse the selected APK file.</string>

@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.FolderOpen
@@ -34,6 +35,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -249,6 +251,7 @@ fun BinaryCompositionBar(
 @Composable
 fun EmptyIntakeScreen(
     onOpenApkClick: () -> Unit,
+    onBrowseInstalledClick: () -> Unit,
     onInspectSelfClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -344,6 +347,21 @@ fun EmptyIntakeScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(stringResource(R.string.action_open_apk))
                         }
+                        FilledTonalButton(
+                            onClick = onBrowseInstalledClick,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .testTag("browse_installed_apps_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Apps,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.action_browse_installed))
+                        }
                         OutlinedButton(
                             onClick = onInspectSelfClick,
                             modifier = Modifier
@@ -374,7 +392,7 @@ fun EmptyIntakeScreen(
                         color = MaterialTheme.colorScheme.secondary
                     )
                     Text(
-                        text = "1. Browse device storage folders via the built-in APK File Explorer or pick any .apk package.",
+                        text = "1. Pick an installed application on your device or browse Downloads and folders for any .apk file.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

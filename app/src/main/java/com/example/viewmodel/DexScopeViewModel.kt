@@ -16,6 +16,7 @@ import com.example.model.ExportBundlePreview
 import com.example.model.ExportConfig
 import com.example.model.ExportSuccessInfo
 import com.example.model.HexDumpLine
+import com.example.model.InstalledAppItem
 import com.example.model.RecentApkItem
 import com.example.model.StorageDocumentItem
 import com.example.model.StringFindingCategory
@@ -53,6 +54,7 @@ data class FolderBreadcrumb(
 
 data class StorageExplorerState(
     val isOpen: Boolean = false,
+    val activeTab: Int = 0,
     val mountedTreeUri: Uri? = null,
     val breadcrumbs: List<FolderBreadcrumb> = emptyList(),
     val items: List<StorageDocumentItem> = emptyList(),
@@ -60,6 +62,10 @@ data class StorageExplorerState(
     val apkOnlyFilter: Boolean = true,
     val downloadsApks: List<DownloadApkItem> = emptyList(),
     val recentApks: List<RecentApkItem> = emptyList(),
+    val installedApps: List<InstalledAppItem> = emptyList(),
+    val isLoadingInstalledApps: Boolean = false,
+    val installedAppsQuery: String = "",
+    val showSystemApps: Boolean = false,
     val browserError: String? = null
 )
 
@@ -103,7 +109,7 @@ class DexScopeViewModel(application: Application) : AndroidViewModel(application
         _uiState.update { it.copy(darkTheme = !it.darkTheme) }
     }
 
-    fun openStorageExplorer() {
+    fun openStorageExplorer(initialTab: Int = 0) {
         val ctx = getApplication<Application>()
         val treeUri = StorageExplorerHelper.getMountedTreeUri(ctx)
         val recents = StorageExplorerHelper.getRecentApks(ctx)
@@ -111,8 +117,10 @@ class DexScopeViewModel(application: Application) : AndroidViewModel(application
             it.copy(
                 storageExplorer = it.storageExplorer.copy(
                     isOpen = true,
+                    activeTab = initialTab,
                     mountedTreeUri = treeUri,
                     recentApks = recents,
+                    isLoadingInstalledApps = true,
                     browserError = null
                 )
             )
@@ -125,8 +133,85 @@ class DexScopeViewModel(application: Application) : AndroidViewModel(application
                 it.copy(storageExplorer = it.storageExplorer.copy(downloadsApks = downloads))
             }
         }
+        viewModelScope.launch {
+            val apps = withContext(Dispatchers.IO) {
+                StorageExplorerHelper.scanInstalledApps(ctx)
+            }
+            _uiState.update {
+                it.copy(
+                    storageExplorer = it.storageExplorer.copy(
+                        installedApps = apps,
+                        isLoadingInstalledApps = false
+                    )
+                )
+            }
+        }
         if (treeUri != null) {
             browseFolder(treeUri, parentDocumentId = null, folderLabel = "Mounted Folder", resetTrail = true)
+        }
+    }
+
+    fun selectStorageExplorerTab(tab: Int) {
+        _uiState.update {
+            it.copy(storageExplorer = it.storageExplorer.copy(activeTab = tab))
+        }
+    }
+
+    fun updateInstalledAppsQuery(query: String) {
+        _uiState.update {
+            it.copy(storageExplorer = it.storageExplorer.copy(installedAppsQuery = query))
+        }
+    }
+
+    fun toggleShowSystemApps() {
+        _uiState.update {
+            it.copy(
+                storageExplorer = it.storageExplorer.copy(
+                    showSystemApps = !it.storageExplorer.showSystemApps
+                )
+            )
+        }
+    }
+
+    fun loadApkFromInstalledApp(item: InstalledAppItem) {
+        if (!item.canReadBaseApk || item.baseApkPath.isBlank()) {
+            _uiState.update {
+                it.copy(
+                    storageExplorer = it.storageExplorer.copy(
+                        browserError = "Android prevents reading ${item.appName}'s base.apk directly from storage."
+                    )
+                )
+            }
+            return
+        }
+        viewModelScope.launch {
+            val label = "${item.packageName}.apk"
+            _uiState.update {
+                it.copy(
+                    workspace = WorkspaceState.Loading("${item.appName} ($label)"),
+                    storageExplorer = it.storageExplorer.copy(isOpen = false),
+                    selectedClass = null,
+                    classSmaliSource = "",
+                    selectedMethod = null,
+                    selectedElf = null,
+                    hexEntryPath = null,
+                    exportStatus = ExportStatus.Idle
+                )
+            }
+            try {
+                val session = withContext(Dispatchers.IO) {
+                    ApkArchiveParser.parseFromFilePath(getApplication(), item.baseApkPath, label)
+                }
+                applySession(session)
+            } catch (t: Throwable) {
+                _uiState.update {
+                    it.copy(
+                        workspace = WorkspaceState.Error(
+                            t.message ?: "Failed to read installed application APK."
+                        )
+                    )
+                }
+            }
         }
     }
 

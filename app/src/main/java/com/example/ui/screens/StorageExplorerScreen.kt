@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,25 +23,33 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Android
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -48,11 +57,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toBitmap
 import com.example.model.DownloadApkItem
+import com.example.model.InstalledAppItem
 import com.example.model.StorageDocumentItem
 import com.example.parser.BinaryFormatters
 import com.example.ui.components.SectionLabel
@@ -62,15 +77,20 @@ import com.example.ui.theme.LocalDexScopeSyntax
 import com.example.ui.theme.MonoLabelStyle
 import com.example.viewmodel.StorageExplorerState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StorageExplorerOverlay(
     state: StorageExplorerState,
     onClose: () -> Unit,
+    onSelectTab: (Int) -> Unit,
     onDownloadsPickerClick: () -> Unit,
     onMountFolderClick: () -> Unit,
     onInspectSelfClick: () -> Unit,
     onSelectDownloadItem: (DownloadApkItem) -> Unit,
     onSelectRecentUri: (String) -> Unit,
+    onSelectInstalledApp: (InstalledAppItem) -> Unit,
+    onInstalledAppsQueryChange: (String) -> Unit,
+    onToggleShowSystemApps: () -> Unit,
     onEnterDirectory: (StorageDocumentItem) -> Unit,
     onSelectApkDocument: (StorageDocumentItem) -> Unit,
     onNavigateBreadcrumb: (Int) -> Unit,
@@ -91,6 +111,19 @@ fun StorageExplorerOverlay(
             state.items.filter { it.isDirectory || it.isApk }
         } else {
             state.items
+        }
+    }
+    val filteredInstalledApps = remember(
+        state.installedApps,
+        state.installedAppsQuery,
+        state.showSystemApps
+    ) {
+        state.installedApps.filter { app ->
+            val sysOk = state.showSystemApps || !app.isSystemApp
+            val qOk = state.installedAppsQuery.isBlank() ||
+                app.appName.contains(state.installedAppsQuery, ignoreCase = true) ||
+                app.packageName.contains(state.installedAppsQuery, ignoreCase = true)
+            sysOk && qOk
         }
     }
 
@@ -119,26 +152,54 @@ fun StorageExplorerOverlay(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Device APK & Downloads Browser",
+                        text = "APK & Installed Apps Browser",
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "Pick an .apk from Downloads or browse a mounted folder",
+                        text = "Inspect installed apps or open .apk files from Downloads and storage",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
+            PrimaryTabRow(selectedTabIndex = state.activeTab) {
+                Tab(
+                    selected = state.activeTab == 0,
+                    onClick = { onSelectTab(0) },
+                    text = { Text("APK Files") },
+                    modifier = Modifier.testTag("explorer_tab_files")
+                )
+                Tab(
+                    selected = state.activeTab == 1,
+                    onClick = { onSelectTab(1) },
+                    text = { Text("Installed Apps (${filteredInstalledApps.size})") },
+                    modifier = Modifier.testTag("explorer_tab_installed")
+                )
+            }
+
             HorizontalDivider(color = syntax.borderSubtle)
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            if (state.activeTab == 1) {
+                InstalledAppsTabContent(
+                    apps = filteredInstalledApps,
+                    totalDiscoveredCount = state.installedApps.size,
+                    isLoading = state.isLoadingInstalledApps,
+                    query = state.installedAppsQuery,
+                    showSystemApps = state.showSystemApps,
+                    browserError = state.browserError,
+                    onQueryChange = onInstalledAppsQueryChange,
+                    onToggleShowSystemApps = onToggleShowSystemApps,
+                    onSelectApp = onSelectInstalledApp
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                 item {
                     TerminalCard(modifier = Modifier.widthIn(max = 760.dp)) {
                         Column(
@@ -519,7 +580,220 @@ fun StorageExplorerOverlay(
                 }
 
                 item { Spacer(modifier = Modifier.height(16.dp)) }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun InstalledAppsTabContent(
+    apps: List<InstalledAppItem>,
+    totalDiscoveredCount: Int,
+    isLoading: Boolean,
+    query: String,
+    showSystemApps: Boolean,
+    browserError: String?,
+    onQueryChange: (String) -> Unit,
+    onToggleShowSystemApps: () -> Unit,
+    onSelectApp: (InstalledAppItem) -> Unit
+) {
+    val context = LocalContext.current
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        item {
+            Column(
+                modifier = Modifier.widthIn(max = 760.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    placeholder = { Text("Filter by app name or package ID…") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (query.isNotEmpty()) {
+                            IconButton(onClick = { onQueryChange("") }) {
+                                Icon(Icons.Filled.Clear, contentDescription = "Clear search")
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("installed_apps_search")
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilterChip(
+                        selected = showSystemApps,
+                        onClick = onToggleShowSystemApps,
+                        label = { Text("Include system apps") },
+                        modifier = Modifier.testTag("installed_apps_system_filter")
+                    )
+                    Text(
+                        text = "${apps.size} of $totalDiscoveredCount launchable apps",
+                        style = MonoLabelStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Text(
+                    text = "Discovers launchable installed apps via targeted Android <queries> visibility without broad package permissions. Tapping an app loads its base.apk for Smali, string & ELF inspection.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        if (browserError != null) {
+            item {
+                TerminalCard(modifier = Modifier.widthIn(max = 760.dp)) {
+                    Text(
+                        text = browserError,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(14.dp)
+                    )
+                }
+            }
+        }
+
+        if (isLoading) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+        } else if (apps.isEmpty()) {
+            item {
+                TerminalCard(modifier = Modifier.widthIn(max = 760.dp)) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Apps,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Text(
+                            text = "No matching installed apps found.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        } else {
+            items(apps, key = { it.packageName }) { app ->
+                val iconBitmap: ImageBitmap? = remember(app.packageName) {
+                    runCatching {
+                        context.packageManager
+                            .getApplicationIcon(app.packageName)
+                            .toBitmap(width = 96, height = 96)
+                            .asImageBitmap()
+                    }.getOrNull()
+                }
+
+                TerminalCard(
+                    onClick = { onSelectApp(app) },
+                    modifier = Modifier
+                        .widthIn(max = 760.dp)
+                        .testTag("installed_app_${app.packageName}")
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (iconBitmap != null) {
+                            Image(
+                                bitmap = iconBitmap,
+                                contentDescription = "${app.appName} icon",
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Filled.Android,
+                                contentDescription = "${app.appName} icon",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = app.appName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = app.packageName,
+                                style = MonoLabelStyle,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            val splitNote = if (app.splitApkPaths.isNotEmpty()) {
+                                " · +${app.splitApkPaths.size} split"
+                            } else {
+                                ""
+                            }
+                            Text(
+                                text = "v${app.versionName} · ${BinaryFormatters.formatBytes(app.apkSizeBytes)}$splitNote",
+                                style = MonoLabelStyle,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        StatusPill(
+                            text = when {
+                                !app.canReadBaseApk -> "LOCKED"
+                                app.isSystemApp -> "SYS"
+                                else -> "APP"
+                            },
+                            containerColor = when {
+                                !app.canReadBaseApk -> MaterialTheme.colorScheme.errorContainer
+                                app.isSystemApp -> MaterialTheme.colorScheme.secondaryContainer
+                                else -> MaterialTheme.colorScheme.primaryContainer
+                            },
+                            contentColor = when {
+                                !app.canReadBaseApk -> MaterialTheme.colorScheme.onErrorContainer
+                                app.isSystemApp -> MaterialTheme.colorScheme.onSecondaryContainer
+                                else -> MaterialTheme.colorScheme.onPrimaryContainer
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(16.dp)) }
     }
 }

@@ -2,12 +2,17 @@ package com.example.parser
 
 import android.content.ContentUris
 import android.content.Context
+import android.content.Intent
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import androidx.core.content.pm.PackageInfoCompat
 import com.example.model.DownloadApkItem
+import com.example.model.InstalledAppItem
 import com.example.model.RecentApkItem
 import com.example.model.StorageDocumentItem
 import java.io.File
@@ -197,5 +202,77 @@ object StorageExplorerHelper {
                 } else null
             }
             .toList()
+    }
+
+    fun scanInstalledApps(context: Context): List<InstalledAppItem> {
+        val pm = context.packageManager
+        val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+        val resolved = runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.queryIntentActivities(launcherIntent, PackageManager.ResolveInfoFlags.of(0L))
+            } else {
+                @Suppress("DEPRECATION")
+                pm.queryIntentActivities(launcherIntent, 0)
+            }
+        }.getOrElse { emptyList() }
+
+        val seenPackages = HashSet<String>()
+        val items = mutableListOf<InstalledAppItem>()
+
+        for (info in resolved) {
+            val activityInfo = info.activityInfo ?: continue
+            val appInfo = activityInfo.applicationInfo ?: continue
+            val pkgName = appInfo.packageName ?: continue
+            if (!seenPackages.add(pkgName)) continue
+
+            val appName = runCatching { info.loadLabel(pm).toString() }
+                .getOrNull()
+                ?.takeIf { it.isNotBlank() }
+                ?: runCatching { pm.getApplicationLabel(appInfo).toString() }.getOrNull()
+                ?: pkgName
+
+            val pkgInfo = runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    pm.getPackageInfo(pkgName, PackageManager.PackageInfoFlags.of(0L))
+                } else {
+                    @Suppress("DEPRECATION")
+                    pm.getPackageInfo(pkgName, 0)
+                }
+            }.getOrNull()
+
+            val versionName = pkgInfo?.versionName?.takeIf { it.isNotBlank() } ?: "?"
+            val versionCode = pkgInfo?.let { PackageInfoCompat.getLongVersionCode(it) } ?: 0L
+
+            val basePath = appInfo.publicSourceDir ?: appInfo.sourceDir ?: ""
+            val baseFile = if (basePath.isNotBlank()) File(basePath) else null
+            val readable = baseFile != null && baseFile.exists() && baseFile.canRead()
+            val baseSize = if (readable && baseFile != null) baseFile.length() else 0L
+            val splitPaths = (appInfo.splitPublicSourceDirs ?: appInfo.splitSourceDirs)
+                ?.filterNotNull()
+                ?.filter { it.isNotBlank() }
+                ?: emptyList()
+            val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+
+            items.add(
+                InstalledAppItem(
+                    appName = appName,
+                    packageName = pkgName,
+                    versionName = versionName,
+                    versionCode = versionCode,
+                    baseApkPath = basePath,
+                    splitApkPaths = splitPaths,
+                    apkSizeBytes = baseSize,
+                    isSystemApp = isSystem,
+                    canReadBaseApk = readable
+                )
+            )
+        }
+
+        return items.sortedWith(
+            compareBy<InstalledAppItem> { it.isSystemApp }
+                .thenBy(String.CASE_INSENSITIVE_ORDER) { it.appName }
+        )
     }
 }

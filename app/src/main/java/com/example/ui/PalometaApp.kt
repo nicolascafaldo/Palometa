@@ -224,7 +224,7 @@ fun PalometaApp(
                         },
                         actions = {
                             IconButton(
-                                onClick = viewModel::openStorageExplorer,
+                                onClick = { viewModel.openStorageExplorer(0) },
                                 modifier = Modifier
                                     .minimumInteractiveComponentSize()
                                     .testTag("topbar_open_apk")
@@ -322,7 +322,8 @@ fun PalometaApp(
                         when (val ws = uiState.workspace) {
                             WorkspaceState.Empty -> {
                                 EmptyIntakeScreen(
-                                    onOpenApkClick = viewModel::openStorageExplorer,
+                                    onOpenApkClick = { viewModel.openStorageExplorer(0) },
+                                    onBrowseInstalledClick = { viewModel.openStorageExplorer(1) },
                                     onInspectSelfClick = viewModel::loadSelfApk
                                 )
                             }
@@ -334,7 +335,7 @@ fun PalometaApp(
                             is WorkspaceState.Error -> {
                                 ErrorWorkbenchScreen(
                                     message = ws.message,
-                                    onOpenApkClick = viewModel::openStorageExplorer,
+                                    onOpenApkClick = { viewModel.openStorageExplorer(0) },
                                     onInspectSelfClick = viewModel::loadSelfApk
                                 )
                             }
@@ -352,7 +353,7 @@ fun PalometaApp(
                                             onNavigateElf = { navController.navigate(ROUTE_ELF) },
                                             onNavigateInspect = { navController.navigate(ROUTE_INSPECT) },
                                             onNavigateExport = { navController.navigate(ROUTE_EXPORT) },
-                                            onOpenAnotherApk = viewModel::openStorageExplorer,
+                                            onOpenAnotherApk = { viewModel.openStorageExplorer(0) },
                                             onCopiedNotice = showCopiedToast
                                         )
                                     }
@@ -442,6 +443,7 @@ fun PalometaApp(
                 StorageExplorerOverlay(
                     state = uiState.storageExplorer,
                     onClose = viewModel::closeStorageExplorer,
+                    onSelectTab = viewModel::selectStorageExplorerTab,
                     onDownloadsPickerClick = { openFromDownloadsLauncher.launch(Unit) },
                     onMountFolderClick = {
                         openFolderTreeLauncher.launch(StorageExplorerHelper.DOWNLOADS_DOCUMENT_URI)
@@ -451,6 +453,9 @@ fun PalometaApp(
                     onSelectRecentUri = { uriStr ->
                         runCatching { Uri.parse(uriStr) }.getOrNull()?.let { viewModel.loadApkFromUri(it) }
                     },
+                    onSelectInstalledApp = viewModel::loadApkFromInstalledApp,
+                    onInstalledAppsQueryChange = viewModel::updateInstalledAppsQuery,
+                    onToggleShowSystemApps = viewModel::toggleShowSystemApps,
                     onEnterDirectory = viewModel::enterStorageDirectory,
                     onSelectApkDocument = { item ->
                         runCatching { Uri.parse(item.documentUriString) }.getOrNull()?.let {
