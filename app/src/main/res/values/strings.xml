@@ -21,5 +21,7 @@
     <string name="error_parse_generic">Could not parse the selected APK file.</string>
     <string name="cd_toggle_theme">Toggle light or warm dusk theme</string>
     <string name="cd_open_apk">Open APK &amp; Downloads browser</string>
+    <string name="cd_legal_info">MIT License and Authorized Use Disclaimer</string>
+    <string name="action_legal_disclaimer">MIT License &amp; Authorized Use Disclaimer</string>
     <string name="cd_hero_illustration">School of tiny colorful piranhas nibbling a paper document and blueprint</string>
 </resources>

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -50,8 +51,11 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -70,6 +74,7 @@ import com.example.R
 import com.example.parser.StorageExplorerHelper
 import com.example.ui.components.EmptyIntakeScreen
 import com.example.ui.components.ErrorWorkbenchScreen
+import com.example.ui.components.LegalDisclaimerDialog
 import com.example.ui.components.LoadingWorkbenchScreen
 import com.example.ui.screens.DexExplorerScreen
 import com.example.ui.screens.ElfInspectorScreen
@@ -134,6 +139,7 @@ fun PalometaApp(
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    var showLegalDialog by rememberSaveable { mutableStateOf(false) }
 
     val openFromDownloadsLauncher = rememberLauncherForActivityResult(
         contract = OpenApkFromDownloadsContract()
@@ -235,6 +241,17 @@ fun PalometaApp(
                                 )
                             }
                             IconButton(
+                                onClick = { showLegalDialog = true },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("topbar_legal_info")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Info,
+                                    contentDescription = stringResource(R.string.cd_legal_info)
+                                )
+                            }
+                            IconButton(
                                 onClick = viewModel::toggleTheme,
                                 modifier = Modifier
                                     .minimumInteractiveComponentSize()
@@ -324,7 +341,8 @@ fun PalometaApp(
                                 EmptyIntakeScreen(
                                     onOpenApkClick = { viewModel.openStorageExplorer(0) },
                                     onBrowseInstalledClick = { viewModel.openStorageExplorer(1) },
-                                    onInspectSelfClick = viewModel::loadSelfApk
+                                    onInspectSelfClick = viewModel::loadSelfApk,
+                                    onLegalClick = { showLegalDialog = true }
                                 )
                             }
 
@@ -465,6 +483,10 @@ fun PalometaApp(
                     onNavigateBreadcrumb = viewModel::navigateStorageBreadcrumb,
                     onToggleApkOnlyFilter = viewModel::toggleApkOnlyFilter
                 )
+            }
+
+            if (showLegalDialog) {
+                LegalDisclaimerDialog(onDismiss = { showLegalDialog = false })
             }
         }
     }

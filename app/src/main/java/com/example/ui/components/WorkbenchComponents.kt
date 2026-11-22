@@ -30,7 +30,9 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material.icons.outlined.Terminal
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -42,6 +44,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -253,6 +256,7 @@ fun EmptyIntakeScreen(
     onOpenApkClick: () -> Unit,
     onBrowseInstalledClick: () -> Unit,
     onInspectSelfClick: () -> Unit,
+    onLegalClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val syntax = LocalDexScopeSyntax.current
@@ -408,8 +412,109 @@ fun EmptyIntakeScreen(
                     )
                 }
             }
+
+            TerminalCard(
+                onClick = onLegalClick,
+                modifier = Modifier.testTag("empty_legal_button")
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Gavel,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Authorized Use Only · MIT License",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "For developers auditing authorized APKs. Tap to view full disclaimer & license.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
         }
     }
+}
+
+@Composable
+fun LegalDisclaimerDialog(
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Outlined.Gavel,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        title = {
+            Text(
+                text = "Disclaimer & MIT License",
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 380.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "AUTHORIZED USE & NON-LIABILITY",
+                    style = MonoLabelStyle,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Palometa is provided strictly for software developers, security researchers, and educators analyzing apps they own or have explicit legal authorization to inspect. Users are solely responsible for complying with applicable laws, licenses, and terms of service. The author and contributors assume no responsibility or liability for how users operate this software or use exported files.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "LOCAL PRIVACY",
+                    style = MonoLabelStyle,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                Text(
+                    text = "All APK parsing, Smali decompilation, string scanning, and ZIP bundle exports execute 100% locally on your device. No analytics, ads, or remote uploads are performed.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "MIT LICENSE",
+                    style = MonoLabelStyle,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+                Text(
+                    text = "Copyright (c) 2026 Nicolas H. Cafaldo\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.testTag("legal_dialog_close")
+            ) {
+                Text("Close")
+            }
+        }
+    )
 }
 
 @Composable

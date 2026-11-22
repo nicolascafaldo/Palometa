@@ -19,7 +19,7 @@ No README, no CI (`.github/` absent), no ktlint/detekt/spotless/`.editorconfig`.
 - `export/WorkstationExporter.kt` builds the Ghidra zip (`dex/`, `native/`,
   `decoded/`, `meta/`, `ghidra_workspace/`).
 - Naming is inconsistent: package/namespace `com.example`,
-  applicationId `com.aistudio.dexscope.rkvxqm`, theme `Theme.DexScope`, product
+  applicationId `com.palometa.application`, theme `Theme.DexScope`, product
   "Palometa". Grep for `dexscope`/`com.example`, not just "Palometa". Do not
   rename the package — manifest, applicationId, and tests all depend on it.
 
@@ -94,10 +94,9 @@ ANDROID_HOME=/home/anon/android-sdk \
 
 ## Open TODOs (Play release)
 
-- [ ] **Decide the final `applicationId` before first Play upload** — current
-  `com.aistudio.dexscope.rkvxqm` is a generated ID and becomes **permanent**
-  on Play at first publish. Changing it later = a brand-new app listing.
-  (The `com.example` namespace can stay as-is; appId and namespace may differ.)
+- [x] **Decide the final `applicationId` before first Play upload** — finalized as
+  `com.palometa.application` (becomes **permanent** on Play at first publish;
+  the `com.example` namespace stays as-is).
 - [ ] **Build the Play-required App Bundle** — `:app:bundleRelease` (using the
   signing env above) → `app/build/outputs/bundle/release/app-release.aab`.
   Upload to Play Console on an internal/closed track first; store listing

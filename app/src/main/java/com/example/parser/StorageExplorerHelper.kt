@@ -248,7 +248,7 @@ object StorageExplorerHelper {
             val basePath = appInfo.publicSourceDir ?: appInfo.sourceDir ?: ""
             val baseFile = if (basePath.isNotBlank()) File(basePath) else null
             val readable = baseFile != null && baseFile.exists() && baseFile.canRead()
-            val baseSize = if (readable && baseFile != null) baseFile.length() else 0L
+            val baseSize = baseFile?.takeIf { readable }?.length() ?: 0L
             val splitPaths = (appInfo.splitPublicSourceDirs ?: appInfo.splitSourceDirs)
                 ?.filterNotNull()
                 ?.filter { it.isNotBlank() }

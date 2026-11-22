@@ -1,7 +1,7 @@
 # Palometa — Agent & Developer Reference
 
 > **Palometa** (Spanish for piranha) is a Kotlin + Jetpack Compose Android APK binary inspector, Smali/Dalvik decompiler, printable string scanner, and Ghidra desktop workstation export packager.
-> Licensed under **GNU GPLv3** (`LICENSE`).
+> Licensed under the **MIT License** (`LICENSE`).
 
 ---
 
@@ -11,8 +11,8 @@
 | --- | --- | --- |
 | App Name | `Palometa` | `res/values/strings.xml`, `settings.gradle.kts`, `metadata.json` |
 | `namespace` | `com.example` | Keep unchanged (`R` class & Kotlin source paths) |
-| `applicationId` | `com.aistudio.dexscope.rkvxqm` | Do **not** alter |
-| `versionCode` / `versionName` | `3` / `3.0` | Set in `app/build.gradle.kts` |
+| `applicationId` | `com.palometa.application` | Final Play Store ID — do **not** alter |
+| `versionCode` / `versionName` | `4` / `4.0` | Set in `app/build.gradle.kts` |
 | SDK Levels | `minSdk = 24`, `compileSdk = 36` (`36.1`), `targetSdk = 36` | Compatible set — keep aligned |
 | Unused SDKs | Firebase / Room / Retrofit / OkHttp / Moshi | Kept commented out in `app/build.gradle.kts` to minimize APK size |
 
