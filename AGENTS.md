@@ -97,8 +97,6 @@ ANDROID_HOME=/home/anon/android-sdk \
 - [x] **Decide the final `applicationId` before first Play upload** — finalized as
   `com.palometa.application` (becomes **permanent** on Play at first publish;
   the `com.example` namespace stays as-is).
-- [ ] **Build the Play-required App Bundle** — `:app:bundleRelease` (using the
-  signing env above) → `app/build/outputs/bundle/release/app-release.aab`.
-  Upload to Play Console on an internal/closed track first; store listing
-  still needs privacy policy URL, Data safety form, content rating, and
-  assets (512px icon, 1024×500 feature graphic, 2+ phone screenshots).
+- [x] **Build the Play-required App Bundle** — `:app:bundleRelease` (using the
+  signing env above) → `app/build/outputs/bundle/release/app-release.aab` (4.7MB,
+  signed with upload cert). GitHub Pages privacy.html verified live.
